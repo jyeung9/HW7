@@ -177,7 +177,8 @@ void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 {
     assert(ra != NULL);
     assert(mapped != NULL);
-    *ra = Seg_get(Seq_get(mapped, rb), rc); // will change this to just indexing array
+    *ra = ((Seg_T)Seq_get(mapped, rb))->arr[rc];
+    // Seg_get(Seq_get(mapped, rb), rc); // will change this to just indexing array
     return;
 }
 
@@ -240,7 +241,7 @@ void load_program(Seq_T mapped, uint32_t rb, uint32_t rc, int *count)
         int length = ((Seg_T)(Seq_get(mapped, rb)))->length;
         Seg_T store_here = Seg_new(length);
         for (int i = 0; i < length; i++) {
-            store_here->arr[i] = Seg_get(Seq_get(mapped, rb), i);
+            store_here->arr[i] = ((Seg_T)Seq_get(mapped, rb))->arr[i];
         }
         Seg_free(Seq_get(mapped, 0));
         Seq_put(mapped, 0, store_here);

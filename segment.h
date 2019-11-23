@@ -42,7 +42,7 @@ void Seg_put(Seg_T seg, int i, uint32_t value);
 /**
  * Will get the word in the specified segment at the index (i)
  */
-uint32_t Seg_get(Seg_T seg, int i);
+// uint32_t Seg_get(Seg_T seg, int i);
 
 /**
  * Will add the specified word to the end of the segment

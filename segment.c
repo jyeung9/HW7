@@ -80,16 +80,16 @@ void Seg_put(Seg_T seg, int i, uint32_t value)
  * Purpose:     Will get the value at the specified index
  * CRE:         If the segment is NULL, if the index is out of bounds
  */
-uint32_t Seg_get(Seg_T seg, int i)
-{  
-    // if (seg->length <= i) {
-    //     fprintf(stderr, "length is %d and index is %d\n", seg->length, i);
-    //     exit(1);
-    // }
-    assert(seg != NULL);
-    assert(i >= 0 && i < seg->length);
-    return seg->arr[i];
-}
+// uint32_t Seg_get(Seg_T seg, int i)
+// {  
+//     // if (seg->length <= i) {
+//     //     fprintf(stderr, "length is %d and index is %d\n", seg->length, i);
+//     //     exit(1);
+//     // }
+//     assert(seg != NULL);
+//     assert(i >= 0 && i < seg->length);
+//     return seg->arr[i];
+// }
 
 /** 
  * Seg_append

@@ -202,7 +202,8 @@ void run_program(Memory mem)
     assert(mem != NULL);
     while (true) {
      
-        word instruct = Seg_get(Seq_get(mem->mapped, 0), mem->prog_counter); 
+        word instruct = 
+                    ((Seg_T)Seq_get(mem->mapped, 0))->arr[mem->prog_counter]; 
         execute_instruct(mem, instruct);
         mem->prog_counter++;
     }
