@@ -12,9 +12,10 @@
 #include "memory.h"
 #include "instruct.h"
 #include <assert.h>
-#include <bitpack.h>
+#include <except.h>
 #include <um-dis.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 
 #define BYTESIZE 8
 
@@ -41,15 +42,58 @@ typedef enum Um_opcode
  * This function will ensure all the data from the memory struct is properly
  * freed
  */
-static void free_all(Memory mem);
+static inline void free_all(Memory mem);
 
 /**
  * This function will contain all switch statements for the 
  * instructions
  */
-static void execute_instruct(Memory mem, word code);
+static inline void execute_instruct(Memory mem, word code);
+
+Except_T Bitpack_Overflow = { "Overflow packing bits" };
+
+static inline uint64_t shl(uint64_t word, unsigned bits)
+{
+        assert(bits <= 64);
+        if (bits == 64)
+                return 0;
+        else
+                return word << bits;
+}
+
+/*
+ * shift R logical
+ */
+static inline uint64_t shr(uint64_t word, unsigned bits)
+{
+        assert(bits <= 64);
+        if (bits == 64)
+                return 0;
+        else
+                return word >> bits;
+}
 
 
+static inline bool Bitpack_fitsu(uint64_t n, unsigned width)
+{
+        if (width >= 64)
+                return true;
+        /* thanks to Jai Karve and John Bryan  */
+        /* clever shortcut instead of 2 shifts */
+        return shr(n, width) == 0; 
+}
+
+static inline uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
+                      uint64_t value)
+{
+        unsigned hi = lsb + width; /* one beyond the most significant bit */
+        assert(hi <= 64);
+        if (!Bitpack_fitsu(value, width))
+                RAISE(Bitpack_Overflow);
+        return shl(shr(word, hi), hi)                 /* high part */
+                | shr(shl(word, 64 - lsb), 64 - lsb)  /* low part  */
+                | (value << lsb);                     /* new part  */
+}
 
 /** 
  * init_um

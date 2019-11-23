@@ -13,7 +13,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <bitpack.h>
+
+
+static inline uint64_t shl(uint64_t word, unsigned bits)
+{
+        assert(bits <= 64);
+        if (bits == 64)
+                return 0;
+        else
+                return word << bits;
+}
+
+/*
+ * shift R logical
+ */
+static inline uint64_t shr(uint64_t word, unsigned bits)
+{
+        assert(bits <= 64);
+        if (bits == 64)
+                return 0;
+        else
+                return word >> bits;
+}
+
+static inline uint64_t Bitpack_getu(uint64_t word, unsigned width, unsigned lsb)
+{
+        unsigned hi = lsb + width; /* one beyond the most significant bit */
+        assert(hi <= 64);
+        /* different type of right shift */
+        return shr(shl(word, 64 - hi),
+                   64 - width); 
+}
 
 /**
  * return_instruct
@@ -41,9 +71,11 @@ word return_instruct(word value)
 void get_three_reg(word value, word *ra, word *rb, word *rc)
 {
     assert(ra != NULL && rb != NULL && rc != NULL);
-    *ra = Bitpack_getu(value, 3, 6);
+    
+    *ra = Bitpack_getu(value, 3, 6); // width 3, lsb 6
     *rb = Bitpack_getu(value, 3, 3);
     *rc = Bitpack_getu(value, 3, 0);
+
     return;
 }
 
