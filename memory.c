@@ -301,12 +301,13 @@ static void execute_instruct(Memory mem, word instruction)
 {
     // fprintf(stderr, "in execute instructions\n");
     assert(mem != NULL);
-    word op_code = return_instruct(instruction);
+    word op_code = Bitpack_getu(instruction, 4, 28);
     // fprintf(stderr, "instruction: %u\n", op_code);
     word ra = 0;
     if (op_code == LV) {
-        word value = 0;
-        get_load_val(instruction, &ra, &value);
+        word value = Bitpack_getu(instruction, 25, 0);
+        ra = Bitpack_getu(instruction, 3, 25);
+        // get_load_val(instruction, &ra, &value);
         load_value(&(mem->registers[ra]), value);
         return;
     }

@@ -52,13 +52,13 @@ static inline uint64_t Bitpack_getu(uint64_t word, unsigned width, unsigned lsb)
  * Return:      the op code of the word (four most significant bits)
  * Purpose:     this will take in a word and return the instruction in it
  * CRE:         none
- */
-word return_instruct(word value)
-{
-    word instruct;
-    instruct = Bitpack_getu(value, 4, 28);
-    return instruct;
-}
+//  */
+// word return_instruct(word value)
+// {
+//     word instruct;
+//     instruct = Bitpack_getu(value, 4, 28);
+//     return instruct;
+// }
 
 /** 
  * get_three_reg

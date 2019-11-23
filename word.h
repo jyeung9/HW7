@@ -22,7 +22,7 @@ typedef uint32_t word;
  * Name: return_instruct
  * Does: will return the operation (the four most significant bits) in a word
  */
-word return_instruct(word value);
+// word return_instruct(word value);
 
 /**
  * Name: get_three reg

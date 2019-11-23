@@ -10,8 +10,14 @@
  */
 
 // #include "instruct.h"
-#include "word.h"
+// #include "word.h"
 #include <seq.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
+typedef uint32_t word;
 
 /* our memory struct */
 typedef struct
