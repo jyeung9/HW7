@@ -37,7 +37,7 @@ void Seg_free(Seg_T seg);
 /**
  * Will put the specified word in the specified index of the specified segment
  */
-void Seg_put(Seg_T seg, int i, uint32_t value);
+// void Seg_put(Seg_T seg, int i, uint32_t value);
 
 /**
  * Will get the word in the specified segment at the index (i)

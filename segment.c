@@ -63,13 +63,13 @@ void Seg_free(Seg_T seg)
  *              than the length of the segment
  *              segment is not NULL
  */
-void Seg_put(Seg_T seg, int i, uint32_t value)
-{
-    assert(seg != NULL);
-    assert(i >= 0 && i < seg->length);
-    seg->arr[i] = value;
-    return;
-}
+// void Seg_put(Seg_T seg, int i, uint32_t value)
+// {
+//     assert(seg != NULL);
+//     assert(i >= 0 && i < seg->length);
+//     seg->arr[i] = value;
+//     return;
+// }
 
 /** 
  * Seg_get

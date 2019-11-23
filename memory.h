@@ -28,6 +28,11 @@ typedef struct
     int prog_counter;
 } * Memory;
 
+typedef struct 
+{
+    int length;
+    uint32_t arr[];
+} *Seg_T;
 
 /**
  * This funciton will return a pointer to all of our necessary data for 

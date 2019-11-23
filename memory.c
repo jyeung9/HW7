@@ -10,7 +10,7 @@
  */
 
 #include "memory.h"
-#include "segment.h"
+// #include "segment.h"
 // #include "instruct.h"
 #include <assert.h>
 #include <except.h>
@@ -209,8 +209,12 @@ Memory init_um(FILE *input, int words)
 
     assert(words > 0);
 
-    Seg_T seg = Seg_new(words); /* initializing the segment to be inserted */
+
+    Seg_T seg = malloc(sizeof(*seg) + words * sizeof(uint32_t));
     assert(seg != NULL);
+    seg->length = words;
+    // Seg_new(words); /* initializing the segment to be inserted */
+    
     
     for (int i = 0; i < words; i++) { // keep track of sets of bytes
         word value = 0;
@@ -255,7 +259,7 @@ static void free_all(Memory mem)
         for (int i = 0; i < Seq_length(mem->mapped); i++) {
             Seg_T temp = Seq_get(mem->mapped, i);
             if (temp != NULL) {
-                Seg_free(temp);  // can eventually change this to just free(seg)
+                free(temp);  // can eventually change this to just free(seg)
             }
         }
         Seq_free(&(mem->mapped));
@@ -475,7 +479,11 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T mapped, Seq_T unmapped)
     assert(mapped != NULL);
     assert(unmapped != NULL);
     
-    Seg_T temp = Seg_new(rc);
+    Seg_T temp = malloc(sizeof(*temp) + rc * sizeof(uint32_t));
+    assert(temp != NULL);
+    temp->length = rc;
+    
+    // Seg_new(rc);
     for (int i = 0; i < (int)rc; i++) {
         temp->arr[i] = 0;
     }
@@ -507,7 +515,16 @@ void unmap_segment(uint32_t rc, Seq_T mapped, Seq_T unmapped)
   
     assert(mapped != NULL);
     assert(unmapped != NULL);
-    Seg_free(Seq_get(mapped, rc));
+    free(Seq_get(mapped, rc)); 
+    
+    
+    
+    
+    /* TAKE CARE OF MAKING SURE NOT NULL OR SOMETHING, CHECK FOR -1 LENGTH*/
+
+
+
+
     Seq_put(mapped, rc, NULL);
     void *temp = Seq_addhi(unmapped, (void *)(uintptr_t)rc);
     (void)temp;
@@ -546,7 +563,7 @@ void seg_store(uint32_t ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 {
     assert(mapped != NULL);
   
-    Seg_put(Seq_get(mapped, ra), rb, rc);
+    ((Seg_T)(Seq_get(mapped, ra)))->arr[rb] = rc; 
     return;
 }
 
@@ -589,11 +606,27 @@ void load_program(Seq_T mapped, uint32_t rb, uint32_t rc, int *count)
         
         /* deep copy */
         int length = ((Seg_T)(Seq_get(mapped, rb)))->length;
-        Seg_T store_here = Seg_new(length);
+        Seg_T store_here = malloc(sizeof(*store_here) + length * sizeof(uint32_t));
+        assert(store_here != NULL);
+        store_here->length = length;
+        
+        
+        // Seg_new(length);
         for (int i = 0; i < length; i++) {
             store_here->arr[i] = ((Seg_T)Seq_get(mapped, rb))->arr[i];
         }
-        Seg_free(Seq_get(mapped, 0));
+        free(Seq_get(mapped, 0)); // will we need to assert that this is not NULL
+
+
+
+
+        /****************** NOTE   ***************************/
+
+
+
+
+
+
         Seq_put(mapped, 0, store_here);
      
     }
