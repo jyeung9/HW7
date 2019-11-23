@@ -9,7 +9,7 @@
  *
  */
 
-#include "instruct.h"
+// #include "instruct.h"
 #include "word.h"
 #include <seq.h>
 
@@ -21,6 +21,7 @@ typedef struct
     Seq_T unmapped;
     int prog_counter;
 } * Memory;
+
 
 /**
  * This funciton will return a pointer to all of our necessary data for 
