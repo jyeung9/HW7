@@ -68,16 +68,16 @@ word return_instruct(word value)
  * Purpose:     will get the tags of the three registers of given word
  * CRE:         ra, rb, rc cannot be NULL
  */
-void get_three_reg(word value, word *ra, word *rb, word *rc)
-{
-    assert(ra != NULL && rb != NULL && rc != NULL);
+// void get_three_reg(word value, word *ra, word *rb, word *rc)
+// {
+//     assert(ra != NULL && rb != NULL && rc != NULL);
     
-    *ra = Bitpack_getu(value, 3, 6); // width 3, lsb 6
-    *rb = Bitpack_getu(value, 3, 3);
-    *rc = Bitpack_getu(value, 3, 0);
+//     *ra = Bitpack_getu(value, 3, 6); // width 3, lsb 6
+//     *rb = Bitpack_getu(value, 3, 3);
+//     *rc = Bitpack_getu(value, 3, 0);
 
-    return;
-}
+//     return;
+// }
 
 /*
  *

@@ -83,6 +83,15 @@ static inline bool Bitpack_fitsu(uint64_t n, unsigned width)
         return shr(n, width) == 0; 
 }
 
+static inline uint64_t Bitpack_getu(uint64_t word, unsigned width, unsigned lsb)
+{
+        unsigned hi = lsb + width; /* one beyond the most significant bit */
+        assert(hi <= 64);
+        /* different type of right shift */
+        return shr(shl(word, 64 - hi),
+                   64 - width); 
+}
+
 static inline uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
                       uint64_t value)
 {
@@ -224,9 +233,10 @@ static void execute_instruct(Memory mem, word instruction)
         load_value(&(mem->registers[ra]), value);
         return;
     }
-    word rb = 0;
-    word rc = 0;
-    get_three_reg(instruction, &ra, &rb, &rc);
+    ra = Bitpack_getu(instruction, 3, 6);
+    word rb = Bitpack_getu(instruction, 3, 3);
+    word rc = Bitpack_getu(instruction, 3, 0);
+    // get_three_reg(instruction, &ra, &rb, &rc);
     switch (op_code) {
     case CMOV:
         conditional_move(&(mem->registers[ra]), mem->registers[rb],

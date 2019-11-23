@@ -29,7 +29,7 @@ word return_instruct(word value);
  * Does: grabs the register values from the word and stores them into
  * correct position in registers array
  */
-void get_three_reg(word value, word *ra, word *rb, word *rc);
+// void get_three_reg(word value, word *ra, word *rb, word *rc);
 
 /**
  * Name: get_load_val
