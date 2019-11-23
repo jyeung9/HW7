@@ -11,6 +11,7 @@
 
 #include "instruct.h"
 #include "word.h"
+#include <seq.h>
 
 /* our memory struct */
 typedef struct
@@ -25,7 +26,7 @@ typedef struct
  * This funciton will return a pointer to all of our necessary data for 
  * initializing the UM
  */
-Memory init_um(FILE *input);
+Memory init_um(FILE *input, int words);
 
 /**
  * This funciton will run the program and incremene the prog_counter

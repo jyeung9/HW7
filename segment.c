@@ -25,13 +25,15 @@
  * Parameters:  An estimated length of the new segment 
  * Return:      A new segment
  * Purpose:     Will take in the predicted length and will construct a segment
- *              of that length (basically a pointer to a Seq_T)
+ *              of that length 
  * CRE:         word_len (the number of elements) cannot be less than 0
  */
 Seg_T Seg_new(int word_len)
 {
     assert(word_len >= 0);
-    return Seq_new(word_len);
+    Seg_T seg = malloc(sizeof(*seg) + word_len * sizeof(uint32_t));
+    seg->length = word_len;
+    return seg;
 }
 
 /** 
@@ -45,7 +47,7 @@ Seg_T Seg_new(int word_len)
 void Seg_free(Seg_T seg)
 {
     assert(seg != NULL);
-    Seq_free(&seg);
+    free(seg);
     
     return;
 }
@@ -64,8 +66,8 @@ void Seg_free(Seg_T seg)
 void Seg_put(Seg_T seg, int i, uint32_t value)
 {
     assert(seg != NULL);
-    assert(i >= 0 && i < Seg_length(seg));
-    Seq_put(seg, i, (void *)(uintptr_t)value);
+    assert(i >= 0 && i < seg->length);
+    seg->arr[i] = value;
     return;
 }
 
@@ -79,10 +81,14 @@ void Seg_put(Seg_T seg, int i, uint32_t value)
  * CRE:         If the segment is NULL, if the index is out of bounds
  */
 uint32_t Seg_get(Seg_T seg, int i)
-{
+{  
+    // if (seg->length <= i) {
+    //     fprintf(stderr, "length is %d and index is %d\n", seg->length, i);
+    //     exit(1);
+    // }
     assert(seg != NULL);
-    assert(i >= 0 && i < Seg_length(seg));
-    return (uint32_t)(uintptr_t)Seq_get(seg, i);
+    assert(i >= 0 && i < seg->length);
+    return seg->arr[i];
 }
 
 /** 
@@ -93,12 +99,12 @@ uint32_t Seg_get(Seg_T seg, int i)
  * Purpose:     Will insert the word at the end of the segment
  * CRE:         If the segment is NULL
  */
-void Seg_append(Seg_T seg, uint32_t value)
-{
-    assert(seg != NULL);
-    Seq_addhi(seg, (void *)(uintptr_t)value);
-    return;
-}
+// void Seg_append(Seg_T seg, uint32_t value)
+// {
+//     assert(seg != NULL);
+//     Seq_addhi(seg, (void *)(uintptr_t)value);
+//     return;
+// }
 
 /** 
  * Seg_length
@@ -108,8 +114,8 @@ void Seg_append(Seg_T seg, uint32_t value)
  * Purpose:     Will find the length of the segment and return
  * CRE:         If the segment is NULL
  */
-int Seg_length(Seg_T seg)
-{
-    assert(seg != NULL);
-    return Seq_length(seg);
-}
+// int Seg_length(Seg_T seg)
+// {
+//     assert(seg != NULL);
+//     return Seq_length(seg);
+// }

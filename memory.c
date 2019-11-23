@@ -14,6 +14,8 @@
 #include <assert.h>
 #include <bitpack.h>
 #include <um-dis.h>
+#include <sys/stat.h>
+
 #define BYTESIZE 8
 
 // WHAT IS INACTIVATE/ACTIVATE OPCODE FOR??
@@ -47,6 +49,8 @@ static void free_all(Memory mem);
  */
 static void execute_instruct(Memory mem, word code);
 
+
+
 /** 
  * init_um
  * 
@@ -58,8 +62,9 @@ static void execute_instruct(Memory mem, word code);
  *              running our UM
  * CRE:         The input file cannot be NULL, the formed segment cant be NULL
  */
-Memory init_um(FILE *input)
+Memory init_um(FILE *input, int words)
 {
+    // fprintf(stderr, "beginning initializatins\n");
     assert(input != NULL);
     Memory mem;
     mem = malloc(sizeof(*mem));
@@ -70,34 +75,36 @@ Memory init_um(FILE *input)
         mem->registers[i] = 0;
     }
     mem->unmapped = Seq_new(3);
-    Seg_T seg = Seg_new(3); /* initializing the segment to be inserted */
 
-    int c = getc(input);
-    word value = 0; /* this will be word to be appended */
-    int safe = 0;   /* this will act as a boolean */
-    while (c != EOF) {
-        for (int i = 24; i >= 0; i -= BYTESIZE) {
-            if (c == EOF) {
-                safe++; /* this will tell the prog not to add the word */
-                break;
-            }
-            value = Bitpack_newu(value, BYTESIZE, i, (word)c);
-            c = getc(input);
+    /* function to get length of file and return # of words */
+
+    assert(words > 0);
+
+    Seg_T seg = Seg_new(words); /* initializing the segment to be inserted */
+    assert(seg != NULL);
+    
+    for (int i = 0; i < words; i++) { // keep track of sets of bytes
+        word value = 0;
+        for (int j = 24; j >= 0; j -= BYTESIZE) {
+            int c = getc(input);
+            value = Bitpack_newu(value, BYTESIZE, j, (word)c);
         }
-        if (safe != 1) { /* the word is safe to add */
-            Seg_append(seg, value);
-            value = 0; /* just in case reset */
-        }
+        // fprintf(stderr, "done bitpacking word %x\n", value);
+        seg->arr[i] = value;
     }
 
-    assert(seg != NULL);
-
+    // fprintf(stderr, "length is %d\n",seg->length);
     /* this adds the first element to the mapped sequence */
     mem->mapped = Seq_new(3);
+    // fprintf(stderr, "after making mapped\n");
     Seg_T temp = (Seg_T)Seq_addhi(mem->mapped, seg);
     (void)temp;
+    // fprintf(stderr, "ending initialization\n");
     return mem;
 }
+
+
+
 
 /**
  * free_all
@@ -109,6 +116,7 @@ Memory init_um(FILE *input)
  */
 static void free_all(Memory mem)
 {
+    // fprintf(stderr, "in free all\n");
     assert(mem != NULL);
     if (mem->unmapped != NULL) {
         Seq_free(&(mem->unmapped));
@@ -118,7 +126,7 @@ static void free_all(Memory mem)
         for (int i = 0; i < Seq_length(mem->mapped); i++) {
             Seg_T temp = Seq_get(mem->mapped, i);
             if (temp != NULL) {
-                Seg_free(temp);
+                Seg_free(temp);  // can eventually change this to just free(seg)
             }
         }
         Seq_free(&(mem->mapped));
@@ -139,12 +147,13 @@ static void free_all(Memory mem)
 void run_program(Memory mem)
 {
     assert(mem != NULL);
-
     while (true) {
-        word instruct = Seg_get(Seq_get(mem->mapped, 0), mem->prog_counter);
+     
+        word instruct = Seg_get(Seq_get(mem->mapped, 0), mem->prog_counter); 
         execute_instruct(mem, instruct);
         mem->prog_counter++;
     }
+    //fprintf(stderr, "ended running!\n");
 }
 
 /**
@@ -160,8 +169,10 @@ void run_program(Memory mem)
  */
 static void execute_instruct(Memory mem, word instruction)
 {
+    // fprintf(stderr, "in execute instructions\n");
     assert(mem != NULL);
     word op_code = return_instruct(instruction);
+    // fprintf(stderr, "instruction: %u\n", op_code);
     word ra = 0;
     if (op_code == LV) {
         word value = 0;

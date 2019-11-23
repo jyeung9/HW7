@@ -25,6 +25,18 @@ static Except_T Invalid_Format =
                     {"Invalid format\nCorrect usage: \"./um [filename]\"\n"};
 
 
+/**
+ * This function will return the number of words in the file
+ */
+static int word_num(char *filename)
+{
+    struct stat st;
+    stat(filename, &st);
+    int size = st.st_size; // returns size in bytes
+    int words = size / 4;
+    return words;
+}
+
 int main(int argc, char **argv)
 {
    
@@ -41,7 +53,7 @@ int main(int argc, char **argv)
 
     /* checking if FILE * is valid */
     if (input != NULL) {
-        Memory mem = init_um(input);
+        Memory mem = init_um(input, word_num(filename));
         fclose(input);
         run_program(mem);
     }

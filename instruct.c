@@ -6,14 +6,17 @@
  * Julie Yeung (jyeung03) and Zetty Cho (echo02)
  * 
  * This file contains our implementation for our instructions interface
- *
+ * 
+ * 
  */
 
-#include "segment.h"
+
+#include "segment.h" 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <bitpack.h>
+#include <seq.h>
 
 #define BYTESIZE 8
 
@@ -124,7 +127,7 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T mapped, Seq_T unmapped)
     
     Seg_T temp = Seg_new(rc);
     for (int i = 0; i < (int)rc; i++) {
-        Seg_append(temp, 0);
+        temp->arr[i] = 0;
     }
     if (unmapped != NULL && Seq_length(unmapped) > 0) {
         *rb = (uint32_t)(uintptr_t)Seq_remlo(unmapped);
@@ -134,6 +137,7 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T mapped, Seq_T unmapped)
         *rb = Seq_length(mapped);
         Seq_addhi(mapped, temp);
     }
+  
 
     return;
 }
@@ -150,6 +154,7 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T mapped, Seq_T unmapped)
  */
 void unmap_segment(uint32_t rc, Seq_T mapped, Seq_T unmapped)
 {
+  
     assert(mapped != NULL);
     assert(unmapped != NULL);
     Seg_free(Seq_get(mapped, rc));
@@ -172,7 +177,7 @@ void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 {
     assert(ra != NULL);
     assert(mapped != NULL);
-    *ra = Seg_get(Seq_get(mapped, rb), rc);
+    *ra = Seg_get(Seq_get(mapped, rb), rc); // will change this to just indexing array
     return;
 }
 
@@ -189,6 +194,7 @@ void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 void seg_store(uint32_t ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 {
     assert(mapped != NULL);
+  
     Seg_put(Seq_get(mapped, ra), rb, rc);
     return;
 }
@@ -229,14 +235,16 @@ void load_program(Seq_T mapped, uint32_t rb, uint32_t rc, int *count)
     assert(mapped != NULL);
     
     if (rb != 0) {
-        Seg_T store_here = Seg_new(1);
-
+        
         /* deep copy */
-        for (int i = 0; i < Seg_length(Seq_get(mapped, rb)); i++) {
-            Seg_append(store_here, Seg_get(Seq_get(mapped, rb), i));
+        int length = ((Seg_T)(Seq_get(mapped, rb)))->length;
+        Seg_T store_here = Seg_new(length);
+        for (int i = 0; i < length; i++) {
+            store_here->arr[i] = Seg_get(Seq_get(mapped, rb), i);
         }
         Seg_free(Seq_get(mapped, 0));
         Seq_put(mapped, 0, store_here);
+     
     }
     *count = rc - 1;
     return;
