@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <except.h>
+// #include <except.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -27,13 +27,13 @@
 #define BYTESIZE 8
 
 
-typedef struct
-{
-    uint32_t registers[BYTESIZE];
-    // Seq_T mapped;
-    Seq_T unmapped;
-    int prog_counter;
-} * Memory;
+// typedef struct
+// {
+//     uint32_t registers[BYTESIZE];
+//     // Seq_T mapped;
+//     // Seq_T unmapped;
+//     int prog_counter;
+// } * Memory;
 
 typedef struct 
 {
@@ -41,18 +41,25 @@ typedef struct
     uint32_t arr[];
 } *Seg_T;
 
-Memory mem;
+// Memory mem;
+uint32_t registers[BYTESIZE];
+int prog_counter;
 
 Seg_T *MAPPED;
 const float LOAD_VAL = 0.5;
 float CURR_LEN;
 float CAPACITY;
 
+
+int *UNMAPPED;
+float UCURR_LEN;
+float UCAPACITY;
+
 // static Except_T Invalid_Format = 
 //                     {"Invalid format\nCorrect usage: \"./um [filename]\"\n"};
 
 
-Except_T Bitpack_Overflow = { "Overflow packing bits" };
+// Except_T Bitpack_Overflow = { "Overflow packing bits" };
 
 typedef enum Um_opcode
 {
@@ -121,12 +128,12 @@ static inline void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc);
  * Will create a new segment with the specified length and store the address
  * in register rb
  */
-static inline void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped);
+static inline void map_segment(uint32_t *rb, uint32_t rc);
 
 /**
  * Will unmap the specified segment and add th index to unmapped
  */
-static inline void unmap_segment(uint32_t rc, Seq_T unmapped);
+static inline void unmap_segment(uint32_t rc);
 
 /**
  * Will take the word located in register rc and store in mapped[ra][rb]
@@ -216,7 +223,7 @@ static inline uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
         unsigned hi = lsb + width; /* one beyond the most significant bit */
         assert(hi <= 64);
         if (!Bitpack_fitsu(value, width))
-                RAISE(Bitpack_Overflow);
+                assert(0);
         return shl(shr(word, hi), hi)                 /* high part */
                 | shr(shl(word, 64 - lsb), 64 - lsb)  /* low part  */
                 | (value << lsb);                     /* new part  */
@@ -277,14 +284,16 @@ void init_um(FILE *input, int words)
 {
     // fprintf(stderr, "beginning initializatins\n");
     assert(input != NULL);
-    mem = malloc(sizeof(*mem));
-    assert(mem != NULL);
+    // mem = malloc(sizeof(*mem));
+    // assert(mem != NULL);
     /* will initialize registers and prog counter to 0 */
-    mem->prog_counter = 0;
+    prog_counter = 0;
     for (int i = 0; i < BYTESIZE; i++) {
-        mem->registers[i] = 0;
+        registers[i] = 0;
     }
-    mem->unmapped = Seq_new(3);
+
+
+    // mem->unmapped = Seq_new(3);
 
     /* function to get length of file and return # of words */
 
@@ -312,6 +321,10 @@ void init_um(FILE *input, int words)
     MAPPED = malloc(sizeof(Seg_T) * CAPACITY);
     MAPPED[0] = seg;
 
+    UCAPACITY = 100000;
+    UCURR_LEN = 0;
+    UNMAPPED = malloc(sizeof(int) * UCAPACITY);
+
     // fprintf(stderr, "length is %d\n",seg->length);
     /* this adds the first element to the mapped sequence */
     // mem->mapped = Seq_new(3);
@@ -336,10 +349,14 @@ void init_um(FILE *input, int words)
 static void free_all()
 {
     // fprintf(stderr, "in free all\n");
-    assert(mem != NULL);
-    if (mem->unmapped != NULL) {
-        Seq_free(&(mem->unmapped));
+    // assert(mem != NULL);
+
+    if (UNMAPPED != NULL) {
+        free(UNMAPPED);
     }
+    // if (mem->unmapped != NULL) {
+    //     Seq_free(&(mem->unmapped));
+    // }
 
     // if (mem->mapped != NULL) {
     //     for (int i = 0; i < Seq_length(mem->mapped); i++) {
@@ -358,7 +375,7 @@ static void free_all()
         free(MAPPED);
     }
 
-    free(mem);
+    // free(mem);
 }
 
 /** 
@@ -372,12 +389,12 @@ static void free_all()
  */
 void run_program()
 {
-    assert(mem != NULL);
+    // assert(mem != NULL);
     while (true) {
      
-        uint32_t instruct = MAPPED[0]->arr[mem->prog_counter]; 
+        uint32_t instruct = MAPPED[0]->arr[prog_counter]; 
         execute_instruct(instruct);
-        mem->prog_counter++;
+        prog_counter++;
     }
     //fprintf(stderr, "ended running!\n");
 }
@@ -396,7 +413,7 @@ void run_program()
 static void execute_instruct(uint32_t instruction)
 {
     // fprintf(stderr, "in execute instructions\n");
-    assert(mem != NULL);
+    // assert(mem != NULL);
     uint32_t op_code = Bitpack_getu(instruction, 4, 28);
     // fprintf(stderr, "instruction: %u\n", op_code);
     uint32_t ra = 0;
@@ -404,7 +421,7 @@ static void execute_instruct(uint32_t instruction)
         uint32_t value = Bitpack_getu(instruction, 25, 0);
         ra = Bitpack_getu(instruction, 3, 25);
         // get_load_val(instruction, &ra, &value);
-        load_value(&(mem->registers[ra]), value);
+        load_value(&(registers[ra]), value);
         return;
     }
     ra = Bitpack_getu(instruction, 3, 6);
@@ -413,53 +430,44 @@ static void execute_instruct(uint32_t instruction)
     // get_three_reg(instruction, &ra, &rb, &rc);
     switch (op_code) {
     case CMOV:
-        conditional_move(&(mem->registers[ra]), mem->registers[rb],
-                         mem->registers[rc]);
+        conditional_move(&(registers[ra]), registers[rb], registers[rc]);
         break;
     case SLOAD:
-        seg_load(&(mem->registers[ra]), mem->registers[rb],
-                 mem->registers[rc]);
+        seg_load(&(registers[ra]), registers[rb], registers[rc]);
         break;
     case SSTORE:
-        seg_store(mem->registers[ra], mem->registers[rb],
-                  mem->registers[rc]);
+        seg_store(registers[ra], registers[rb], registers[rc]);
         break;
     case ADD:
-        add(&(mem->registers[ra]), mem->registers[rb],
-            mem->registers[rc]);
+        add(&(registers[ra]), registers[rb], registers[rc]);
         break;
     case MUL:
-        multiply(&(mem->registers[ra]), mem->registers[rb],
-                 mem->registers[rc]);
+        multiply(&(registers[ra]), registers[rb], registers[rc]);
         break;
     case DIV:
-        divide(&(mem->registers[ra]), mem->registers[rb],
-               mem->registers[rc]);
+        divide(&(registers[ra]), registers[rb], registers[rc]);
         break;
     case NAND:
-        bitwise_nand(&(mem->registers[ra]), mem->registers[rb],
-                     mem->registers[rc]);
+        bitwise_nand(&(registers[ra]), registers[rb], registers[rc]);
         break;
     case HALT:
-        free_all(mem);
+        free_all();
         halt();
         break;
     case OUT:
-        output(mem->registers[rc]);
+        output(registers[rc]);
         break;
     case IN:
-        input(&(mem->registers[rc]));
+        input(&(registers[rc]));
         break;
     case LOADP:
-        load_program(mem->registers[rb], mem->registers[rc],
-                     &(mem->prog_counter));
+        load_program(registers[rb], registers[rc], &(prog_counter));
         break;
     case MAP:
-        map_segment(&(mem->registers[rb]), mem->registers[rc], 
-                    mem->unmapped);
+        map_segment(&(registers[rb]), registers[rc]);
         break;
     case UNMAP:
-        unmap_segment(mem->registers[rc], mem->unmapped);
+        unmap_segment(registers[rc]);
         break;
     }
 }
@@ -564,11 +572,11 @@ void halt()
  * Purpose:     Will create a new mapped segment of all 0s. 
  * CRE:         rb should not be NULL, sequesnces should not be NULL
  */
-void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped)
+void map_segment(uint32_t *rb, uint32_t rc)
 {
     assert(rb != NULL);
     assert(MAPPED != NULL);
-    assert(unmapped != NULL);
+    assert(UNMAPPED != NULL);
     
     Seg_T temp = malloc(sizeof(*temp) + rc * sizeof(uint32_t));
     assert(temp != NULL);
@@ -578,8 +586,11 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped)
     for (int i = 0; i < (int)rc; i++) {
         temp->arr[i] = 0;
     }
-    if (unmapped != NULL && Seq_length(unmapped) > 0) {
-        *rb = (uint32_t)(uintptr_t)Seq_remlo(unmapped);
+    if (UNMAPPED != NULL && UCURR_LEN > 0) {
+        UCURR_LEN--;
+        *rb = UNMAPPED[(int)UCURR_LEN];
+        // *rb = (uint32_t)(uintptr_t)Seq_remlo(unmapped);
+
         MAPPED[*rb] = temp;
         // Seq_put(mapped, *rb, temp);
     }
@@ -601,8 +612,6 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped)
         // *rb = Seq_length(mapped);
         // Seq_addhi(mapped, temp);
     }
-  
-
     return;
 }
 
@@ -618,11 +627,11 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped)
  *              sequence. 
  * CRE:         mapped and unmapped should not be NULL
  */
-void unmap_segment(uint32_t rc, Seq_T unmapped)
+void unmap_segment(uint32_t rc)
 {
   
     assert(MAPPED != NULL);
-    assert(unmapped != NULL);
+    assert(UNMAPPED != NULL);
     assert(MAPPED[rc] != NULL);
     
 
@@ -636,8 +645,20 @@ void unmap_segment(uint32_t rc, Seq_T unmapped)
 
 
     // Seq_put(mapped, rc, NULL);
-    void *temp = Seq_addhi(unmapped, (void *)(uintptr_t)rc);
-    (void)temp;
+
+    UNMAPPED[(int)UCURR_LEN] = rc;
+    UCURR_LEN++;
+    if ((UCURR_LEN / UCAPACITY) > 0.5) {
+        UCAPACITY = UCAPACITY * 2;
+        int *temp = malloc(sizeof(int) * UCAPACITY);
+        for (int i = 0; i < UCURR_LEN; i++) {
+            temp[i] = UNMAPPED[i];
+        }
+        free(UNMAPPED);
+        UNMAPPED = temp;
+    }
+    // void *temp = Seq_addhi(unmapped, (void *)(uintptr_t)rc);
+    // (void)temp;
     return;
 }
 
