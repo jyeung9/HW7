@@ -9,6 +9,9 @@
  *
  */
 
+#ifndef MEMORY_H_
+#define MEMORY_H_
+
 // #include "instruct.h"
 // #include "word.h"
 #include <seq.h>
@@ -17,13 +20,13 @@
 #include <stdlib.h>
 
 
-typedef uint32_t word;
+// typedef uint32_t word;
 
 /* our memory struct */
 typedef struct
 {
-    word registers[8];
-    Seq_T mapped;
+    uint32_t registers[8];
+    // uint32_t *mapped;
     Seq_T unmapped;
     int prog_counter;
 } * Memory;
@@ -44,3 +47,6 @@ Memory init_um(FILE *input, int words);
  * This funciton will run the program and incremene the prog_counter
  */
 void run_program(Memory mem);
+
+
+#endif

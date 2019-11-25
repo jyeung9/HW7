@@ -20,11 +20,6 @@
 
 #define BYTESIZE 8
 
-const float LOAD_VAL = 0.5;
-float CURR_LEN;   // length we'll be referencing 
-float FULL_LEN;  // length to consider for expansions (capacity)
-Seg_T *ARR;
-
 typedef enum Um_opcode
 {
     CMOV = 0,
@@ -42,6 +37,9 @@ typedef enum Um_opcode
     LOADP,
     LV
 } Um_opcode;
+
+
+
 
 /**
  * this takes the values from registers rb and rc and puts the sum in ra
@@ -128,7 +126,7 @@ static inline void free_all(Memory mem);
  * This function will contain all switch statements for the 
  * instructions
  */
-static inline void execute_instruct(Memory mem, uint32_t code);
+static inline void execute_instruct(Memory mem, word code);
 
 Except_T Bitpack_Overflow = { "Overflow packing bits" };
 
@@ -184,15 +182,6 @@ static inline uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
                 | (value << lsb);                     /* new part  */
 }
 
-static inline void init_arr(Seg_T seg);
-
-static inline void append_arr(Seg_T segment);
-
-static inline void expand();
-
-static inline void free_arr();
-
-
 /** 
  * init_um
  * 
@@ -230,10 +219,10 @@ Memory init_um(FILE *input, int words)
     
     
     for (int i = 0; i < words; i++) { // keep track of sets of bytes
-        uint32_t value = 0;
+        word value = 0;
         for (int j = 24; j >= 0; j -= BYTESIZE) {
             int c = getc(input);
-            value = Bitpack_newu(value, BYTESIZE, j, (uint32_t)c);
+            value = Bitpack_newu(value, BYTESIZE, j, (word)c);
         }
         // fprintf(stderr, "done bitpacking word %x\n", value);
         seg->arr[i] = value;
@@ -241,24 +230,12 @@ Memory init_um(FILE *input, int words)
 
     // fprintf(stderr, "length is %d\n",seg->length);
     /* this adds the first element to the mapped sequence */
-    // mem->mapped = init_arr();   // initialize dynamic array
+    mem->mapped = Seq_new(3);
     // fprintf(stderr, "after making mapped\n");
-    // Seg_T temp = (Seg_T)Seq_addhi(mem->mapped, seg);
-    // (void)temp;
-
-    // mem->mapped
+    Seg_T temp = (Seg_T)Seq_addhi(mem->mapped, seg);
+    (void)temp;
     // fprintf(stderr, "ending initialization\n");
-    init_arr(seg);
-    
     return mem;
-}
-
-void init_arr(Seg_T seg)
-{
-    CURR_LEN = 1;
-    FULL_LEN = 100000;
-    ARR = malloc(sizeof(Seg_T) * FULL_LEN);
-    ARR[0] = seg;
 }
 
 
@@ -280,9 +257,14 @@ static void free_all(Memory mem)
         Seq_free(&(mem->unmapped));
     }
 
-    if (ARR != NULL) {
-        /* need code for freeing ARR */
-        free_arr();
+    if (mem->mapped != NULL) {
+        for (int i = 0; i < Seq_length(mem->mapped); i++) {
+            Seg_T temp = Seq_get(mem->mapped, i);
+            if (temp != NULL) {
+                free(temp);  // can eventually change this to just free(seg)
+            }
+        }
+        Seq_free(&(mem->mapped));
     }
 
     free(mem);
@@ -302,7 +284,8 @@ void run_program(Memory mem)
     assert(mem != NULL);
     while (true) {
      
-        uint32_t instruct = ARR[0]->arr[mem->prog_counter];
+        word instruct = 
+                    ((Seg_T)Seq_get(mem->mapped, 0))->arr[mem->prog_counter]; 
         execute_instruct(mem, instruct);
         mem->prog_counter++;
     }
@@ -320,23 +303,23 @@ void run_program(Memory mem)
  *          specifies it
  * CRE: mem cannot be NULL
  */
-static void execute_instruct(Memory mem, uint32_t instruction)
+static void execute_instruct(Memory mem, word instruction)
 {
     // fprintf(stderr, "in execute instructions\n");
     assert(mem != NULL);
-    uint32_t op_code = Bitpack_getu(instruction, 4, 28);
+    word op_code = Bitpack_getu(instruction, 4, 28);
     // fprintf(stderr, "instruction: %u\n", op_code);
-    uint32_t ra = 0;
+    word ra = 0;
     if (op_code == LV) {
-        uint32_t value = Bitpack_getu(instruction, 25, 0);
+        word value = Bitpack_getu(instruction, 25, 0);
         ra = Bitpack_getu(instruction, 3, 25);
         // get_load_val(instruction, &ra, &value);
         load_value(&(mem->registers[ra]), value);
         return;
     }
     ra = Bitpack_getu(instruction, 3, 6);
-    uint32_t rb = Bitpack_getu(instruction, 3, 3);
-    uint32_t rc = Bitpack_getu(instruction, 3, 0);
+    word rb = Bitpack_getu(instruction, 3, 3);
+    word rc = Bitpack_getu(instruction, 3, 0);
     // get_three_reg(instruction, &ra, &rb, &rc);
     switch (op_code) {
     case CMOV:
@@ -345,11 +328,11 @@ static void execute_instruct(Memory mem, uint32_t instruction)
         break;
     case SLOAD:
         seg_load(&(mem->registers[ra]), mem->registers[rb],
-                 mem->registers[rc]);
+                 mem->registers[rc], mem->mapped);
         break;
     case SSTORE:
         seg_store(mem->registers[ra], mem->registers[rb],
-                  mem->registers[rc]);
+                  mem->registers[rc], mem->mapped);
         break;
     case ADD:
         add(&(mem->registers[ra]), mem->registers[rb],
@@ -378,15 +361,15 @@ static void execute_instruct(Memory mem, uint32_t instruction)
         input(&(mem->registers[rc]));
         break;
     case LOADP:
-        load_program(mem->registers[rb], mem->registers[rc],
+        load_program(mem->mapped, mem->registers[rb], mem->registers[rc],
                      &(mem->prog_counter));
         break;
     case MAP:
-        map_segment(&(mem->registers[rb]), mem->registers[rc], 
+        map_segment(&(mem->registers[rb]), mem->registers[rc], mem->mapped,
                     mem->unmapped);
         break;
     case UNMAP:
-        unmap_segment(mem->registers[rc], mem->unmapped);
+        unmap_segment(mem->registers[rc], mem->mapped, mem->unmapped);
         break;
     }
 }
@@ -492,10 +475,10 @@ void halt()
  * Purpose:     Will create a new mapped segment of all 0s. 
  * CRE:         rb should not be NULL, sequesnces should not be NULL
  */
-void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped)
+void map_segment(uint32_t *rb, uint32_t rc, Seq_T mapped, Seq_T unmapped)
 {
     assert(rb != NULL);
-    assert(ARR != NULL);
+    assert(mapped != NULL);
     assert(unmapped != NULL);
     
     Seg_T temp = malloc(sizeof(*temp) + rc * sizeof(uint32_t));
@@ -507,69 +490,16 @@ void map_segment(uint32_t *rb, uint32_t rc, Seq_T unmapped)
         temp->arr[i] = 0;
     }
     if (unmapped != NULL && Seq_length(unmapped) > 0) {
-        *rb = (uint32_t)(uintptr_t)Seq_remlo(unmapped); 
-        free(ARR[*rb]);
-        ARR[*rb] = temp;
-        // Seq_put(mapped, *rb, temp);
+        *rb = (uint32_t)(uintptr_t)Seq_remlo(unmapped);
+        Seq_put(mapped, *rb, temp);
     }
     else {
-        *rb = CURR_LEN;
-        append_arr(temp);       // the add function, to end of array
-        // *rb = Seq_length(mapped);
-        // Seq_addhi(mapped, temp);
+        *rb = Seq_length(mapped);
+        Seq_addhi(mapped, temp);
     }
   
 
     return;
-}
-
-void append_arr(Seg_T segment)
-{
-    // ARR[(int)CURR_LEN] = malloc(sizeof(*segment));
-    ARR[(int)CURR_LEN] = segment;
-    CURR_LEN++;
-    if ((CURR_LEN / 2.0) > LOAD_VAL) {
-        expand();
-    }
-    // have to check load val
-}
-
-void expand()
-{
-    FULL_LEN  = FULL_LEN * 2;   // new, expanded capacity
-    Seg_T *temp = malloc(sizeof(Seg_T) * FULL_LEN);
-    fprintf(stderr, "after *temp malloc\n");
-    /* need to deep copy data, bc Seg_T is a pointer */
-    fprintf(stderr, "b4 sizeof temp arr: %ld\n", sizeof(temp));
-    for (int i  = 0; i < CURR_LEN; i++) {
-        // fprintf(stderr, "sizeof(temp[i]): %ld\n", sizeof(temp[i]));
-        // fprintf(stderr, "sizeof(ARR[i]): %ld\n", sizeof(ARR[i]));
-        temp[i] = ARR[i];
-        //fprintf(stderr, "ARR[i]->length: %d\n", (ARR[i]->length));
-        //fprintf(stderr, "the whole shebang: %ld\n", sizeof(ARR[i]) + sizeof(uint32_t) * (ARR[i]->length));
-
-        // temp[i] = malloc(sizeof(ARR[i]) + sizeof(uint32_t) * (ARR[i]->length));
-        
-        // temp[i]->length = ARR[i]->length;
-        // for (int j = 0; j < temp[i]->length; j++) {
-        //     // temp[i]->arr = malloc(sizeof(uint32_t) * (ARR[i]->length));
-        //     temp[i]->arr[j] = ARR[i]->arr[j];
-        // }
-    }
-    // fprintf(stderr, "sizeof temp arr: %ld\n", sizeof(temp));
-    
-    // free_arr(ARR);
-    free(ARR);
-    ARR = temp;
-}
-
-void free_arr()
-{
-    fprintf(stderr, "in free_arr\n");
-    for(int i = 0; i < CURR_LEN; i++){
-        free(ARR[i]);
-    }
-    free(ARR);
 }
 
 /**
@@ -582,18 +512,22 @@ void free_arr()
  *              sequence. 
  * CRE:         mapped and unmapped should not be NULL
  */
-void unmap_segment(uint32_t rc, Seq_T unmapped)
+void unmap_segment(uint32_t rc, Seq_T mapped, Seq_T unmapped)
 {
   
-    assert(ARR != NULL);
+    assert(mapped != NULL);
     assert(unmapped != NULL);
-    assert(ARR[rc]->length > 0);
-    ARR[rc]->length = -1;
+    free(Seq_get(mapped, rc)); 
+    
+    
     
     
     /* TAKE CARE OF MAKING SURE NOT NULL OR SOMETHING, CHECK FOR -1 LENGTH*/
 
-    // Seq_put(mapped, rc, NULL);
+
+
+
+    Seq_put(mapped, rc, NULL);
     void *temp = Seq_addhi(unmapped, (void *)(uintptr_t)rc);
     (void)temp;
     return;
@@ -608,12 +542,11 @@ void unmap_segment(uint32_t rc, Seq_T unmapped)
  * Purpose:     loads word from memory into register ra
  * CRE:         ra and mapped should not be NULL
  */
-void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
+void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 {
     assert(ra != NULL);
-    assert(ARR != NULL);
-    *ra = ARR[rb]->arr[rc];
-    // *ra = ((Seg_T)Seq_get(mapped, rb))->arr[rc];
+    assert(mapped != NULL);
+    *ra = ((Seg_T)Seq_get(mapped, rb))->arr[rc];
     // Seg_get(Seq_get(mapped, rb), rc); // will change this to just indexing array
     return;
 }
@@ -628,12 +561,11 @@ void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
  *              Will fail if out of bounds in any way
  * CRE:         mapped should not be NULL,  failure is there
  */
-void seg_store(uint32_t ra, uint32_t rb, uint32_t rc)
+void seg_store(uint32_t ra, uint32_t rb, uint32_t rc, Seq_T mapped)
 {
-    assert(ARR != NULL);
-    
-    ARR[ra]->arr[rb] = rc;
-    // ((Seg_T)(Seq_get(mapped, ra)))->arr[rb] = rc; 
+    assert(mapped != NULL);
+  
+    ((Seg_T)(Seq_get(mapped, ra)))->arr[rb] = rc; 
     return;
 }
 
@@ -667,29 +599,25 @@ void conditional_move(uint32_t *ra, uint32_t rb, uint32_t rc)
  *              bounds
  * CRE:         mapped and count should not be NULL, but can break
  */
-void load_program(uint32_t rb, uint32_t rc, int *count)
+void load_program(Seq_T mapped, uint32_t rb, uint32_t rc, int *count)
 {
     assert(count != NULL);
-    assert(ARR != NULL && ARR[rb]->length > 0);
+    assert(mapped != NULL);
     
     if (rb != 0) {
         
         /* deep copy */
-        int length = ARR[rb]->length;
+        int length = ((Seg_T)(Seq_get(mapped, rb)))->length;
         Seg_T store_here = malloc(sizeof(*store_here) + length * sizeof(uint32_t));
-        // Seg_T store_here = ARR[rb];
         assert(store_here != NULL);
-        // store_here->length = length;
+        store_here->length = length;
+        
         
         // Seg_new(length);
         for (int i = 0; i < length; i++) {
-            store_here->arr[i] = ARR[rb]->arr[i];
+            store_here->arr[i] = ((Seg_T)Seq_get(mapped, rb))->arr[i];
         }
-
-        Seg_T temp = ARR[0];
-        ARR[0] = store_here;
-        free(temp);
-        // free(Seq_get(mapped, 0)); // will we need to assert that this is not NULL
+        free(Seq_get(mapped, 0)); // will we need to assert that this is not NULL
 
 
 
@@ -697,7 +625,11 @@ void load_program(uint32_t rb, uint32_t rc, int *count)
         /****************** NOTE   ***************************/
 
 
-        // Seq_put(mapped, 0, store_here);
+
+
+
+
+        Seq_put(mapped, 0, store_here);
      
     }
     *count = rc - 1;

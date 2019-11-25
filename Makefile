@@ -9,12 +9,15 @@ LDFLAGS = -g -L/comp/40/build/lib -L/usr/sup/cii40/lib64
 LDLIBS  = -l40locality -lcii40-O2 -lm -lbitpack -lum-dis -lcii
 #LDLIBS  = -l40locality -lcii40 -lm -lbitpack -lum-dis -lcii
 
-EXECS   = um
+EXECS   = um um2
 # EXECS   = um writetests
 
 all: $(EXECS)
 
 um: um.o memory.o 
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+um2: um2.o 
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 # To get *any* .o file, compile its .c file with the following rule.

@@ -21,6 +21,7 @@
 
 #include "memory.h"
 
+
 static Except_T Invalid_Format = 
                     {"Invalid format\nCorrect usage: \"./um [filename]\"\n"};
 
@@ -64,4 +65,3 @@ int main(int argc, char **argv)
 
     exit(EXIT_SUCCESS);
 }
-
