@@ -18,7 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <seq.h>
+// #include <seq.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -232,7 +232,7 @@ static inline uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
 /**
  * This function will return the number of words in the file
  */
-static int word_num(char *filename)
+static inline int word_num(char *filename)
 {
     struct stat st;
     stat(filename, &st);
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
  *              running our UM
  * CRE:         The input file cannot be NULL, the formed segment cant be NULL
  */
-void init_um(FILE *input, int words)
+static inline void init_um(FILE *input, int words)
 {
     // fprintf(stderr, "beginning initializatins\n");
     assert(input != NULL);
@@ -346,7 +346,7 @@ void init_um(FILE *input, int words)
  * Purpose: Will free all memory associated with the struct used
  * CRE: Mem cannot be NULL
  */
-static void free_all()
+static inline void free_all()
 {
     // fprintf(stderr, "in free all\n");
     // assert(mem != NULL);
@@ -387,7 +387,7 @@ static void free_all()
  *          instruction. Will increment the prog counter here
  * CRE: mem cannot be NULL
  */
-void run_program()
+static inline void run_program()
 {
     // assert(mem != NULL);
     while (true) {
@@ -410,7 +410,7 @@ void run_program()
  *          specifies it
  * CRE: mem cannot be NULL
  */
-static void execute_instruct(uint32_t instruction)
+static inline void execute_instruct(uint32_t instruction)
 {
     // fprintf(stderr, "in execute instructions\n");
     // assert(mem != NULL);
@@ -481,7 +481,7 @@ static void execute_instruct(uint32_t instruction)
  * Purpose:     adds values in registers rb and rc, stores in register ra
  * CRE:         ra cannot be NULL
  */
-void add(uint32_t *ra, uint32_t rb, uint32_t rc)
+static inline void add(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
     assert(ra != NULL);
     *ra = rb + rc;
@@ -496,7 +496,7 @@ void add(uint32_t *ra, uint32_t rb, uint32_t rc)
  * Purpose:     multiplies values in registers rb and rc, stores in register ra
  * CRE:         ra should not be NULL
  */
-void multiply(uint32_t *ra, uint32_t rb, uint32_t rc)
+static inline void multiply(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
     assert(ra != NULL);
     *ra = rb * rc;
@@ -511,7 +511,7 @@ void multiply(uint32_t *ra, uint32_t rb, uint32_t rc)
  * Purpose:     multiplies values in registers rb and rc, stores in register ra
  * CRE:         ra should not be NULL
  */
-void divide(uint32_t *ra, uint32_t rb, uint32_t rc)
+static inline void divide(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
     assert(ra != NULL);
     *ra = rb / rc;
@@ -526,7 +526,7 @@ void divide(uint32_t *ra, uint32_t rb, uint32_t rc)
  * Purpose:     performs bitwise nand on rb and rc, stores result in ra
  * CRE:         ra should not be NULL
  */
-void bitwise_nand(uint32_t *ra, uint32_t rb, uint32_t rc)
+static inline void bitwise_nand(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
     assert(ra != NULL);
     uint32_t and_result;
@@ -543,7 +543,7 @@ void bitwise_nand(uint32_t *ra, uint32_t rb, uint32_t rc)
  * Purpose:     adds values in registers rb and rc, stores in register ra
  * CRE:         ra should not be NULL
  */
-void load_value(uint32_t *ra, uint32_t val)
+static inline void load_value(uint32_t *ra, uint32_t val)
 {
     assert(ra != NULL);
     *ra = val;
@@ -558,7 +558,7 @@ void load_value(uint32_t *ra, uint32_t val)
  * Purpose:     stops computation, exits program
  * CRE:         none
  */
-void halt()
+static inline void halt()
 {
     exit(0);
 }
@@ -572,7 +572,7 @@ void halt()
  * Purpose:     Will create a new mapped segment of all 0s. 
  * CRE:         rb should not be NULL, sequesnces should not be NULL
  */
-void map_segment(uint32_t *rb, uint32_t rc)
+static inline void map_segment(uint32_t *rb, uint32_t rc)
 {
     assert(rb != NULL);
     assert(MAPPED != NULL);
@@ -627,7 +627,7 @@ void map_segment(uint32_t *rb, uint32_t rc)
  *              sequence. 
  * CRE:         mapped and unmapped should not be NULL
  */
-void unmap_segment(uint32_t rc)
+static inline void unmap_segment(uint32_t rc)
 {
   
     assert(MAPPED != NULL);
@@ -671,7 +671,7 @@ void unmap_segment(uint32_t rc)
  * Purpose:     loads word from memory into register ra
  * CRE:         ra and mapped should not be NULL
  */
-void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
+static inline void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
     assert(ra != NULL);
     assert(MAPPED != NULL);
@@ -690,7 +690,7 @@ void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
  *              Will fail if out of bounds in any way
  * CRE:         mapped should not be NULL,  failure is there
  */
-void seg_store(uint32_t ra, uint32_t rb, uint32_t rc)
+static inline void seg_store(uint32_t ra, uint32_t rb, uint32_t rc)
 {
     assert(MAPPED != NULL);
   
@@ -708,7 +708,7 @@ void seg_store(uint32_t ra, uint32_t rb, uint32_t rc)
  *              the value pointed to by ra. 
  * CRE:         ra should not be NULL
  */
-void conditional_move(uint32_t *ra, uint32_t rb, uint32_t rc)
+static inline void conditional_move(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
     assert(ra != NULL);
     if (rc != 0) {
@@ -728,7 +728,7 @@ void conditional_move(uint32_t *ra, uint32_t rb, uint32_t rc)
  *              bounds
  * CRE:         mapped and count should not be NULL, but can break
  */
-void load_program(uint32_t rb, uint32_t rc, int *count)
+static inline void load_program(uint32_t rb, uint32_t rc, int *count)
 {
     assert(count != NULL);
     assert(MAPPED != NULL);
@@ -773,7 +773,7 @@ void load_program(uint32_t rb, uint32_t rc, int *count)
  * Purpose:     It will take in user input and put it into the specified reg
  * CRE:         rc should not be NULL
  */
-void input(uint32_t *rc)
+static inline void input(uint32_t *rc)
 {
     assert(rc != NULL);
     int user_in = getchar();
@@ -794,7 +794,7 @@ void input(uint32_t *rc)
  * Purpose:     It will take the value from reg rc and print it out
  * CRE:         rc is greater than 255
  */
-void output(uint32_t rc)
+static inline void output(uint32_t rc)
 {
     assert(rc < 256);
     putchar(rc);
