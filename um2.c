@@ -6,60 +6,43 @@
  * Julie Yeung (jyeung03) and Zetty Cho (echo02)
  * 
  * This file contians our code for running our UM
+ * We took the code for bitpacking from the reference provided by COMP40
  * 
  */
 
-// #include "word.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-// #include <except.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-// #include <seq.h>
 #include <stdint.h>
 #include <stdbool.h>
 
-// #include "memory.h"
-
 #define BYTESIZE 8
 
-
-// typedef struct
-// {
-//     uint32_t registers[BYTESIZE];
-//     // Seq_T mapped;
-//     // Seq_T unmapped;
-//     int prog_counter;
-// } * Memory;
-
+/* this struct represents a segment */
 typedef struct 
 {
     int length;
     uint32_t arr[];
 } *Seg_T;
 
-// Memory mem;
+/* this array represents the registers */
 uint32_t registers[BYTESIZE];
 int prog_counter;
 
+/* variables for the array of mapped segments */
 Seg_T *MAPPED;
 const float LOAD_VAL = 0.5;
 float CURR_LEN;
 float CAPACITY;
 
-
+/* variables for the array of unmapped indices */
 int *UNMAPPED;
 float UCURR_LEN;
 float UCAPACITY;
-
-// static Except_T Invalid_Format = 
-//                     {"Invalid format\nCorrect usage: \"./um [filename]\"\n"};
-
-
-// Except_T Bitpack_Overflow = { "Overflow packing bits" };
 
 typedef enum Um_opcode
 {
@@ -177,60 +160,90 @@ static inline void free_all();
  */
 static inline void execute_instruct(uint32_t code);
 
+/*  From the Reference Bitpack Implementation 
+ *  Logical Left Shift 
+ */
 static inline uint64_t shl(uint64_t word, unsigned bits)
 {
-        assert(bits <= 64);
+        // assert(bits <= 64);
+        if (bits > 64) {
+            fprintf(stderr, "ERROR");
+            exit(EXIT_FAILURE);
+        }
         if (bits == 64)
-                return 0;
+            return 0;
         else
-                return word << bits;
+            return word << bits;
 }
 
-/*
- * shift R logical
+/*  From the Reference Bitpack Implementation 
+ *  Logical Right Shift 
  */
 static inline uint64_t shr(uint64_t word, unsigned bits)
 {
-        assert(bits <= 64);
+        // assert(bits <= 64);
+        if (bits > 64) {
+            fprintf(stderr, "ERROR");
+            exit(EXIT_FAILURE);
+        }
         if (bits == 64)
-                return 0;
+            return 0;
         else
-                return word >> bits;
+            return word >> bits;
 }
 
-
+/*  From the Reference Bitpack Implementation 
+ *  Checks whether given value fits
+ */
 static inline bool Bitpack_fitsu(uint64_t n, unsigned width)
 {
         if (width >= 64)
-                return true;
+            return true;
         /* thanks to Jai Karve and John Bryan  */
         /* clever shortcut instead of 2 shifts */
         return shr(n, width) == 0; 
 }
 
+/*  From the Reference Bitpack Implementation 
+ *  Retrieves a field from a given word
+ */
 static inline uint64_t Bitpack_getu(uint64_t word, unsigned width, unsigned lsb)
 {
         unsigned hi = lsb + width; /* one beyond the most significant bit */
-        assert(hi <= 64);
+        // assert(hi <= 64);
+        if (hi > 64) {
+            fprintf(stderr, "ERROR");
+            exit(EXIT_FAILURE);
+        }
         /* different type of right shift */
         return shr(shl(word, 64 - hi),
                    64 - width); 
 }
 
+/*  From the Reference Bitpack Implementation 
+ *  Updates a field within a given word
+ */
 static inline uint64_t Bitpack_newu(uint64_t word, unsigned width, unsigned lsb,
                       uint64_t value)
 {
         unsigned hi = lsb + width; /* one beyond the most significant bit */
-        assert(hi <= 64);
+        if(hi > 64){
+            fprintf(stderr, "ERROR\n");
+            exit(EXIT_FAILURE);
+        }
+        // assert(hi <= 64);
         if (!Bitpack_fitsu(value, width))
-                assert(0);
+            exit(EXIT_FAILURE);
+            // assert(0);
         return shl(shr(word, hi), hi)                 /* high part */
-                | shr(shl(word, 64 - lsb), 64 - lsb)  /* low part  */
-                | (value << lsb);                     /* new part  */
+            | shr(shl(word, 64 - lsb), 64 - lsb)  /* low part  */
+            | (value << lsb);                     /* new part  */
 }
 
 /**
- * This function will return the number of words in the file
+ *  Parameters
+ *  Returns: 
+ *  Purpose: returns number of words in file
  */
 static inline int word_num(char *filename)
 {
@@ -243,7 +256,6 @@ static inline int word_num(char *filename)
 
 int main(int argc, char **argv)
 {
-   
     /* checking where to get input from */
     if (argc > 2 || argc < 2) {
         fprintf(stderr, "Invalid format\nCorrect usage: \"./um [filename]\"\n");
@@ -251,7 +263,6 @@ int main(int argc, char **argv)
     }
 
     FILE *input;
-
     char *filename = argv[1];
     input = fopen(filename, "r");
 
@@ -282,61 +293,60 @@ int main(int argc, char **argv)
  */
 static inline void init_um(FILE *input, int words)
 {
-    // fprintf(stderr, "beginning initializatins\n");
-    assert(input != NULL);
-    // mem = malloc(sizeof(*mem));
-    // assert(mem != NULL);
+    if(input == NULL){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(input != NULL);
     /* will initialize registers and prog counter to 0 */
     prog_counter = 0;
     for (int i = 0; i < BYTESIZE; i++) {
         registers[i] = 0;
     }
 
-
-    // mem->unmapped = Seq_new(3);
-
     /* function to get length of file and return # of words */
-
+    if(words <= 0){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     assert(words > 0);
-
-
     Seg_T seg = malloc(sizeof(*seg) + words * sizeof(uint32_t));
-    assert(seg != NULL);
+    if (seg == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(seg != NULL);
     seg->length = words;
-    // Seg_new(words); /* initializing the segment to be inserted */
     
-    
-    for (int i = 0; i < words; i++) { // keep track of sets of bytes
+    for (int i = 0; i < words; i++) { 
         uint32_t value = 0;
         for (int j = 24; j >= 0; j -= BYTESIZE) {
             int c = getc(input);
             value = Bitpack_newu(value, BYTESIZE, j, (uint32_t)c);
         }
-        // fprintf(stderr, "done bitpacking word %x\n", value);
         seg->arr[i] = value;
     }
 
     CAPACITY = 100000;
     CURR_LEN = 1;
     MAPPED = malloc(sizeof(Seg_T) * CAPACITY);
+    assert(MAPPED != NULL);
+    if(MAPPED == NULL){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     MAPPED[0] = seg;
 
     UCAPACITY = 100000;
     UCURR_LEN = 0;
     UNMAPPED = malloc(sizeof(int) * UCAPACITY);
+    if (UNMAPPED == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(UNMAPPED != NULL);
 
-    // fprintf(stderr, "length is %d\n",seg->length);
-    /* this adds the first element to the mapped sequence */
-    // mem->mapped = Seq_new(3);
-    // fprintf(stderr, "after making mapped\n");
-    // Seg_T temp = (Seg_T)Seq_addhi(mem->mapped, seg);
-    // (void)temp;
-    // fprintf(stderr, "ending initialization\n");
-    // return mem;
 }
-
-
-
 
 /**
  * free_all
@@ -348,34 +358,18 @@ static inline void init_um(FILE *input, int words)
  */
 static inline void free_all()
 {
-    // fprintf(stderr, "in free all\n");
-    // assert(mem != NULL);
-
     if (UNMAPPED != NULL) {
         free(UNMAPPED);
     }
-    // if (mem->unmapped != NULL) {
-    //     Seq_free(&(mem->unmapped));
-    // }
-
-    // if (mem->mapped != NULL) {
-    //     for (int i = 0; i < Seq_length(mem->mapped); i++) {
-    //         Seg_T temp = Seq_get(mem->mapped, i);
-    //         if (temp != NULL) {
-    //             free(temp);  // can eventually change this to just free(seg)
-    //         }
-    //     }
-    //     Seq_free(&(mem->mapped));
-    // }
-
     if (MAPPED != NULL) {
         for (int i = 0; i < CURR_LEN; i++) {
-            free(MAPPED[i]);
+            Seg_T temp = MAPPED[i];
+            if (temp != NULL) {
+                free(temp);
+            }
         }
         free(MAPPED);
     }
-
-    // free(mem);
 }
 
 /** 
@@ -389,14 +383,11 @@ static inline void free_all()
  */
 static inline void run_program()
 {
-    // assert(mem != NULL);
     while (true) {
-     
         uint32_t instruct = MAPPED[0]->arr[prog_counter]; 
         execute_instruct(instruct);
         prog_counter++;
     }
-    //fprintf(stderr, "ended running!\n");
 }
 
 /**
@@ -412,22 +403,60 @@ static inline void run_program()
  */
 static inline void execute_instruct(uint32_t instruction)
 {
-    // fprintf(stderr, "in execute instructions\n");
-    // assert(mem != NULL);
     uint32_t op_code = Bitpack_getu(instruction, 4, 28);
-    // fprintf(stderr, "instruction: %u\n", op_code);
     uint32_t ra = 0;
     if (op_code == LV) {
         uint32_t value = Bitpack_getu(instruction, 25, 0);
         ra = Bitpack_getu(instruction, 3, 25);
-        // get_load_val(instruction, &ra, &value);
         load_value(&(registers[ra]), value);
         return;
     }
     ra = Bitpack_getu(instruction, 3, 6);
     uint32_t rb = Bitpack_getu(instruction, 3, 3);
     uint32_t rc = Bitpack_getu(instruction, 3, 0);
-    // get_three_reg(instruction, &ra, &rb, &rc);
+
+
+    if (op_code == CMOV) {
+        conditional_move(&(registers[ra]), registers[rb], registers[rc]);
+    }
+    else if(op_code == SLOAD) {
+        seg_load(&(registers[ra]), registers[rb], registers[rc]);
+    }
+    else if (op_code == SSTORE) {
+        seg_store(registers[ra], registers[rb], registers[rc]);
+    }
+    else if (op_code == ADD) {
+        add(&(registers[ra]), registers[rb], registers[rc]);
+    }
+    else if (op_code == MUL) {
+        multiply(&(registers[ra]), registers[rb], registers[rc]);
+    }
+    else if (op_code == DIV) {
+        divide(&(registers[ra]), registers[rb], registers[rc]);
+    }
+    else if (op_code == NAND) {
+        bitwise_nand(&(registers[ra]), registers[rb], registers[rc]);
+    }
+    else if (op_code == HALT) {
+        free_all();
+        halt();
+    }
+    else if (op_code == OUT) {
+        output(registers[rc]);
+    }
+    else if (op_code == IN) {
+        input(&(registers[rc]));
+    }
+    else if (op_code == LOADP) {
+        load_program(registers[rb], registers[rc], &(prog_counter));
+    }
+    else if (op_code == MAP) {
+        map_segment(&(registers[rb]), registers[rc]);
+    }
+    else if (op_code == UNMAP) {
+        unmap_segment(registers[rc]);
+    }
+    /*
     switch (op_code) {
     case CMOV:
         conditional_move(&(registers[ra]), registers[rb], registers[rc]);
@@ -469,9 +498,8 @@ static inline void execute_instruct(uint32_t instruction)
     case UNMAP:
         unmap_segment(registers[rc]);
         break;
-    }
+    }*/
 }
-
 
 /**
  * add
@@ -483,7 +511,7 @@ static inline void execute_instruct(uint32_t instruction)
  */
 static inline void add(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
-    assert(ra != NULL);
+    // assert(ra != NULL); // would remove this
     *ra = rb + rc;
     return;
 }
@@ -498,7 +526,7 @@ static inline void add(uint32_t *ra, uint32_t rb, uint32_t rc)
  */
 static inline void multiply(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
-    assert(ra != NULL);
+    // assert(ra != NULL);
     *ra = rb * rc;
     return;
 }
@@ -513,7 +541,7 @@ static inline void multiply(uint32_t *ra, uint32_t rb, uint32_t rc)
  */
 static inline void divide(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
-    assert(ra != NULL);
+    // assert(ra != NULL);
     *ra = rb / rc;
     return;
 }
@@ -528,7 +556,7 @@ static inline void divide(uint32_t *ra, uint32_t rb, uint32_t rc)
  */
 static inline void bitwise_nand(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
-    assert(ra != NULL);
+    // assert(ra != NULL);
     uint32_t and_result;
     and_result = rb & rc;
     *ra = (uint32_t)(~(and_result));
@@ -545,7 +573,7 @@ static inline void bitwise_nand(uint32_t *ra, uint32_t rb, uint32_t rc)
  */
 static inline void load_value(uint32_t *ra, uint32_t val)
 {
-    assert(ra != NULL);
+    // assert(ra != NULL);
     *ra = val;
     return;
 }
@@ -574,25 +602,33 @@ static inline void halt()
  */
 static inline void map_segment(uint32_t *rb, uint32_t rc)
 {
-    assert(rb != NULL);
-    assert(MAPPED != NULL);
-    assert(UNMAPPED != NULL);
+    // assert(rb != NULL)
+    if(MAPPED == NULL){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(MAPPED != NULL);
+    // assert(UNMAPPED != NULL);
+    if (UNMAPPED == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     
     Seg_T temp = malloc(sizeof(*temp) + rc * sizeof(uint32_t));
-    assert(temp != NULL);
+    if (temp == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(temp != NULL);
     temp->length = rc;
     
-    // Seg_new(rc);
     for (int i = 0; i < (int)rc; i++) {
         temp->arr[i] = 0;
     }
     if (UNMAPPED != NULL && UCURR_LEN > 0) {
         UCURR_LEN--;
         *rb = UNMAPPED[(int)UCURR_LEN];
-        // *rb = (uint32_t)(uintptr_t)Seq_remlo(unmapped);
-
         MAPPED[*rb] = temp;
-        // Seq_put(mapped, *rb, temp);
     }
     else {
         *rb = CURR_LEN;
@@ -601,6 +637,11 @@ static inline void map_segment(uint32_t *rb, uint32_t rc)
         if ((CURR_LEN/CAPACITY) > LOAD_VAL) { /* have to expand */
             CAPACITY = CAPACITY * 2;
             Seg_T *temp = malloc(sizeof(Seg_T) * CAPACITY);
+            // assert(temp != NULL);
+            if(temp == NULL){
+                fprintf(stderr, "ERROR\n");
+                exit(EXIT_FAILURE);
+            }
             for (int i = 0; i < CURR_LEN; i++) {
                 temp[i] = MAPPED[i];
             }
@@ -608,14 +649,9 @@ static inline void map_segment(uint32_t *rb, uint32_t rc)
             free(MAPPED);
             MAPPED = temp;
         }
-        // append_seg(temp);
-        // *rb = Seq_length(mapped);
-        // Seq_addhi(mapped, temp);
     }
     return;
 }
-
-
 
 /**
  * unmap_segment
@@ -629,36 +665,42 @@ static inline void map_segment(uint32_t *rb, uint32_t rc)
  */
 static inline void unmap_segment(uint32_t rc)
 {
-  
-    assert(MAPPED != NULL);
-    assert(UNMAPPED != NULL);
-    assert(MAPPED[rc] != NULL);
-    
-
-    
+    // assert(MAPPED != NULL);
+    if (MAPPED == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(UNMAPPED != NULL);
+    if (UNMAPPED == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(MAPPED[rc] != NULL);
+    if(MAPPED[rc] == NULL){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     free(MAPPED[rc]);
     MAPPED[rc] = NULL;
     
     /* TAKE CARE OF MAKING SURE NOT NULL OR SOMETHING, CHECK FOR -1 LENGTH*/
-
-
-
-
-    // Seq_put(mapped, rc, NULL);
 
     UNMAPPED[(int)UCURR_LEN] = rc;
     UCURR_LEN++;
     if ((UCURR_LEN / UCAPACITY) > 0.5) {
         UCAPACITY = UCAPACITY * 2;
         int *temp = malloc(sizeof(int) * UCAPACITY);
+        if (temp == NULL) {
+            fprintf(stderr, "ERROR\n");
+            exit(EXIT_FAILURE);
+        }
+        // assert(temp != NULL);
         for (int i = 0; i < UCURR_LEN; i++) {
             temp[i] = UNMAPPED[i];
         }
         free(UNMAPPED);
         UNMAPPED = temp;
     }
-    // void *temp = Seq_addhi(unmapped, (void *)(uintptr_t)rc);
-    // (void)temp;
     return;
 }
 
@@ -673,10 +715,13 @@ static inline void unmap_segment(uint32_t rc)
  */
 static inline void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
-    assert(ra != NULL);
-    assert(MAPPED != NULL);
+    // assert(ra != NULL);
+    if(MAPPED == NULL){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(MAPPED != NULL);
     *ra = MAPPED[rb]->arr[rc];
-    // Seg_get(Seq_get(mapped, rb), rc); // will change this to just indexing array
     return;
 }
 
@@ -692,8 +737,11 @@ static inline void seg_load(uint32_t *ra, uint32_t rb, uint32_t rc)
  */
 static inline void seg_store(uint32_t ra, uint32_t rb, uint32_t rc)
 {
-    assert(MAPPED != NULL);
-  
+    // assert(MAPPED != NULL);
+    if (MAPPED == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     MAPPED[ra]->arr[rb] = rc; 
     return;
 }
@@ -710,7 +758,7 @@ static inline void seg_store(uint32_t ra, uint32_t rb, uint32_t rc)
  */
 static inline void conditional_move(uint32_t *ra, uint32_t rb, uint32_t rc)
 {
-    assert(ra != NULL);
+    // assert(ra != NULL);
     if (rc != 0) {
         *ra = rb;
     }
@@ -730,36 +778,34 @@ static inline void conditional_move(uint32_t *ra, uint32_t rb, uint32_t rc)
  */
 static inline void load_program(uint32_t rb, uint32_t rc, int *count)
 {
-    assert(count != NULL);
-    assert(MAPPED != NULL);
+    if(count == NULL){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
+    // assert(count != NULL);
+    // assert(MAPPED != NULL);
+    if (MAPPED == NULL) {
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     
     if (rb != 0) {
-        
         /* deep copy */
         int length = MAPPED[rb]->length;
-        Seg_T store_here = malloc(sizeof(*store_here) + length * sizeof(uint32_t));
-        assert(store_here != NULL);
+        Seg_T store_here = malloc(sizeof(*store_here) + 
+                                  length * sizeof(uint32_t));
+        if (store_here == NULL) {
+            fprintf(stderr, "ERROR\n");
+            exit(EXIT_FAILURE);
+        }
+        // assert(store_here != NULL);
         store_here->length = length;
-        
-        
-        // Seg_new(length);
         for (int i = 0; i < length; i++) {
             store_here->arr[i] = MAPPED[rb]->arr[i];
         }
         free(MAPPED[0]); // will we need to assert that this is not NULL
-
-
-
-
-        /****************** NOTE   ***************************/
-
-
-
-
+         /****************** ASSERTION?   ***************************/
         MAPPED[0] = store_here;
-
-        // Seq_put(mapped, 0, store_here);
-     
     }
     *count = rc - 1;
     return;
@@ -775,7 +821,7 @@ static inline void load_program(uint32_t rb, uint32_t rc, int *count)
  */
 static inline void input(uint32_t *rc)
 {
-    assert(rc != NULL);
+    // assert(rc != NULL);
     int user_in = getchar();
     if (user_in == EOF) {
         *rc = (uint32_t)(~0);
@@ -796,7 +842,11 @@ static inline void input(uint32_t *rc)
  */
 static inline void output(uint32_t rc)
 {
-    assert(rc < 256);
+    // assert(rc < 256);
+    if(rc >= 256){
+        fprintf(stderr, "ERROR\n");
+        exit(EXIT_FAILURE);
+    }
     putchar(rc);
     return;
 }
