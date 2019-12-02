@@ -1,4 +1,4 @@
-	.file	"um2.c"
+	.file	"um.c"
 	.text
 	.comm	registers,32,32
 	.comm	prog_counter,4,4
@@ -16,6 +16,7 @@ LOAD_VAL:
 	.comm	UCURR_LEN,4,4
 	.comm	UCAPACITY,4,4
 	.text
+	.globl	shl
 	.type	shl, @function
 shl:
 .LFB2:
@@ -44,6 +45,7 @@ shl:
 	.cfi_endproc
 .LFE2:
 	.size	shl, .-shl
+	.globl	shr
 	.type	shr, @function
 shr:
 .LFB3:
@@ -72,6 +74,7 @@ shr:
 	.cfi_endproc
 .LFE3:
 	.size	shr, .-shr
+	.globl	Bitpack_fitsu
 	.type	Bitpack_fitsu, @function
 Bitpack_fitsu:
 .LFB4:
@@ -103,6 +106,7 @@ Bitpack_fitsu:
 	.cfi_endproc
 .LFE4:
 	.size	Bitpack_fitsu, .-Bitpack_fitsu
+	.globl	Bitpack_getu
 	.type	Bitpack_getu, @function
 Bitpack_getu:
 .LFB5:
@@ -145,10 +149,11 @@ Bitpack_getu:
 	.size	Bitpack_getu, .-Bitpack_getu
 	.section	.rodata
 .LC0:
-	.string	"um2.c"
+	.string	"um.c"
 .LC1:
 	.string	"0"
 	.text
+	.globl	Bitpack_newu
 	.type	Bitpack_newu, @function
 Bitpack_newu:
 .LFB6:
@@ -226,6 +231,7 @@ Bitpack_newu:
 	.cfi_endproc
 .LFE6:
 	.size	Bitpack_newu, .-Bitpack_newu
+	.globl	word_num
 	.type	word_num, @function
 word_num:
 .LFB7:
@@ -336,6 +342,7 @@ main:
 .LC12:
 	.string	"UNMAPPED != ((void *)0)"
 	.text
+	.globl	init_um
 	.type	init_um, @function
 init_um:
 .LFB9:
@@ -369,7 +376,7 @@ init_um:
 	cmpq	$0, -24(%rbp)
 	jne	.L25
 	movl	$__PRETTY_FUNCTION__.3921, %ecx
-	movl	$322, %edx
+	movl	$326, %edx
 	movl	$.LC0, %esi
 	movl	$.LC4, %edi
 	call	__assert_fail
@@ -435,7 +442,7 @@ init_um:
 	testq	%rax, %rax
 	jne	.L32
 	movl	$__PRETTY_FUNCTION__.3921, %ecx
-	movl	$337, %edx
+	movl	$341, %edx
 	movl	$.LC0, %esi
 	movl	$.LC9, %edi
 	call	__assert_fail
@@ -468,7 +475,7 @@ init_um:
 	testq	%rax, %rax
 	jne	.L36
 	movl	$__PRETTY_FUNCTION__.3921, %ecx
-	movl	$350, %edx
+	movl	$354, %edx
 	movl	$.LC0, %esi
 	movl	$.LC12, %edi
 	call	__assert_fail
@@ -480,6 +487,7 @@ init_um:
 	.cfi_endproc
 .LFE9:
 	.size	init_um, .-init_um
+	.globl	free_all
 	.type	free_all, @function
 free_all:
 .LFB10:
@@ -533,6 +541,7 @@ free_all:
 	.cfi_endproc
 .LFE10:
 	.size	free_all, .-free_all
+	.globl	run_program
 	.type	run_program, @function
 run_program:
 .LFB11:
@@ -560,6 +569,7 @@ run_program:
 	.cfi_endproc
 .LFE11:
 	.size	run_program, .-run_program
+	.globl	execute_instruct
 	.type	execute_instruct, @function
 execute_instruct:
 .LFB12:
@@ -739,6 +749,7 @@ execute_instruct:
 	.cfi_endproc
 .LFE12:
 	.size	execute_instruct, .-execute_instruct
+	.globl	add
 	.type	add, @function
 add:
 .LFB13:
@@ -765,6 +776,7 @@ add:
 	.cfi_endproc
 .LFE13:
 	.size	add, .-add
+	.globl	multiply
 	.type	multiply, @function
 multiply:
 .LFB14:
@@ -791,6 +803,7 @@ multiply:
 	.cfi_endproc
 .LFE14:
 	.size	multiply, .-multiply
+	.globl	divide
 	.type	divide, @function
 divide:
 .LFB15:
@@ -819,6 +832,7 @@ divide:
 	.cfi_endproc
 .LFE15:
 	.size	divide, .-divide
+	.globl	bitwise_nand
 	.type	bitwise_nand, @function
 bitwise_nand:
 .LFB16:
@@ -849,6 +863,7 @@ bitwise_nand:
 	.cfi_endproc
 .LFE16:
 	.size	bitwise_nand, .-bitwise_nand
+	.globl	load_value
 	.type	load_value, @function
 load_value:
 .LFB17:
@@ -870,6 +885,7 @@ load_value:
 	.cfi_endproc
 .LFE17:
 	.size	load_value, .-load_value
+	.globl	halt
 	.type	halt, @function
 halt:
 .LFB18:
@@ -888,6 +904,7 @@ halt:
 .LC13:
 	.string	"temp != ((void *)0)"
 	.text
+	.globl	map_segment
 	.type	map_segment, @function
 map_segment:
 .LFB19:
@@ -913,7 +930,7 @@ map_segment:
 	cmpq	$0, -24(%rbp)
 	jne	.L73
 	movl	$__PRETTY_FUNCTION__.3984, %ecx
-	movl	$577, %edx
+	movl	$584, %edx
 	movl	$.LC0, %esi
 	movl	$.LC13, %edi
 	call	__assert_fail
@@ -1012,7 +1029,7 @@ map_segment:
 	cmpq	$0, -32(%rbp)
 	jne	.L82
 	movl	$__PRETTY_FUNCTION__.3984, %ecx
-	movl	$595, %edx
+	movl	$602, %edx
 	movl	$.LC0, %esi
 	movl	$.LC13, %edi
 	call	__assert_fail
@@ -1052,6 +1069,7 @@ map_segment:
 	.cfi_endproc
 .LFE19:
 	.size	map_segment, .-map_segment
+	.globl	unmap_segment
 	.type	unmap_segment, @function
 unmap_segment:
 .LFB20:
@@ -1122,7 +1140,7 @@ unmap_segment:
 	cmpq	$0, -16(%rbp)
 	jne	.L93
 	movl	$__PRETTY_FUNCTION__.3999, %ecx
-	movl	$652, %edx
+	movl	$659, %edx
 	movl	$.LC0, %esi
 	movl	$.LC13, %edi
 	call	__assert_fail
@@ -1161,6 +1179,7 @@ unmap_segment:
 	.cfi_endproc
 .LFE20:
 	.size	unmap_segment, .-unmap_segment
+	.globl	seg_load
 	.type	seg_load, @function
 seg_load:
 .LFB21:
@@ -1193,6 +1212,7 @@ seg_load:
 	.cfi_endproc
 .LFE21:
 	.size	seg_load, .-seg_load
+	.globl	seg_store
 	.type	seg_store, @function
 seg_store:
 .LFB22:
@@ -1225,6 +1245,7 @@ seg_store:
 	.cfi_endproc
 .LFE22:
 	.size	seg_store, .-seg_store
+	.globl	conditional_move
 	.type	conditional_move, @function
 conditional_move:
 .LFB23:
@@ -1258,6 +1279,7 @@ conditional_move:
 .LC15:
 	.string	"store_here != ((void *)0)"
 	.text
+	.globl	load_program
 	.type	load_program, @function
 load_program:
 .LFB24:
@@ -1293,7 +1315,7 @@ load_program:
 	cmpq	$0, -24(%rbp)
 	jne	.L108
 	movl	$__PRETTY_FUNCTION__.4026, %ecx
-	movl	$757, %edx
+	movl	$764, %edx
 	movl	$.LC0, %esi
 	movl	$.LC15, %edi
 	call	__assert_fail
@@ -1341,6 +1363,7 @@ load_program:
 	.cfi_endproc
 .LFE24:
 	.size	load_program, .-load_program
+	.globl	input
 	.type	input, @function
 input:
 .LFB25:
@@ -1375,6 +1398,7 @@ input:
 .LC16:
 	.string	"rc < 256"
 	.text
+	.globl	output
 	.type	output, @function
 output:
 .LFB26:
@@ -1389,7 +1413,7 @@ output:
 	cmpl	$255, -20(%rbp)
 	jbe	.L117
 	movl	$__PRETTY_FUNCTION__.4038, %ecx
-	movl	$801, %edx
+	movl	$808, %edx
 	movl	$.LC0, %esi
 	movl	$.LC16, %edi
 	call	__assert_fail
@@ -1409,24 +1433,15 @@ output:
 	.size	output, .-output
 	.section	.rodata
 	.align 8
-	.type	__PRETTY_FUNCTION__.3921, @object
-	.size	__PRETTY_FUNCTION__.3921, 8
-__PRETTY_FUNCTION__.3921:
-	.string	"init_um"
-	.align 8
 	.type	__PRETTY_FUNCTION__.3899, @object
 	.size	__PRETTY_FUNCTION__.3899, 13
 __PRETTY_FUNCTION__.3899:
 	.string	"Bitpack_newu"
-	.type	__PRETTY_FUNCTION__.4038, @object
-	.size	__PRETTY_FUNCTION__.4038, 7
-__PRETTY_FUNCTION__.4038:
-	.string	"output"
 	.align 8
-	.type	__PRETTY_FUNCTION__.4026, @object
-	.size	__PRETTY_FUNCTION__.4026, 13
-__PRETTY_FUNCTION__.4026:
-	.string	"load_program"
+	.type	__PRETTY_FUNCTION__.3921, @object
+	.size	__PRETTY_FUNCTION__.3921, 8
+__PRETTY_FUNCTION__.3921:
+	.string	"init_um"
 	.align 8
 	.type	__PRETTY_FUNCTION__.3984, @object
 	.size	__PRETTY_FUNCTION__.3984, 12
@@ -1437,6 +1452,15 @@ __PRETTY_FUNCTION__.3984:
 	.size	__PRETTY_FUNCTION__.3999, 14
 __PRETTY_FUNCTION__.3999:
 	.string	"unmap_segment"
+	.align 8
+	.type	__PRETTY_FUNCTION__.4026, @object
+	.size	__PRETTY_FUNCTION__.4026, 13
+__PRETTY_FUNCTION__.4026:
+	.string	"load_program"
+	.type	__PRETTY_FUNCTION__.4038, @object
+	.size	__PRETTY_FUNCTION__.4038, 7
+__PRETTY_FUNCTION__.4038:
+	.string	"output"
 	.align 4
 .LC5:
 	.long	1203982336
